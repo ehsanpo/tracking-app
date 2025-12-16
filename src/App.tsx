@@ -2,6 +2,7 @@ import React from 'react';
 import { SafeAreaView, ActivityIndicator, View, StyleSheet } from 'react-native';
 import { lightTheme } from './design/tokens';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CircleProvider } from './contexts/CircleContext';
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
 
@@ -26,7 +27,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <CircleProvider>
+        <AppContent />
+      </CircleProvider>
     </AuthProvider>
   );
 }

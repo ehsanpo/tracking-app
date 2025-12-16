@@ -30,11 +30,11 @@ npm run android
 ```
 
  Environment variables:
- Create a `.env` (or secure secrets) with `SUPABASE_URL` and `SUPABASE_ANON_KEY` before wiring Supabase.
+ Create a `.env` (or secure secrets) with `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (Expo SDK 49+ inlines only `EXPO_PUBLIC_*` on web). See `.env.example`.
 
  Supabase setup quick start
- 1. Create a project on https://app.supabase.com and copy your `SUPABASE_URL` and `anon` key.
- 2. Copy `.env.example` to `.env` and fill the two variables.
+ 1. Create a project on https://app.supabase.com and copy your project URL and anon key.
+ 2. Copy `.env.example` to `.env` and fill `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
  3. In the Supabase SQL editor, paste the SQL in `supabase/migrations/001_init.sql` (creates tables and example RLS policies). Review policies and adjust to your needs.
  4. In local dev, load `.env` into `process.env` when starting dev server. One easy approach:
 
@@ -43,7 +43,7 @@ npm run android
  npx dotenv -e .env -- npm run start
  ```
 
- 5. In production builds, provide `SUPABASE_URL` and `SUPABASE_ANON_KEY` via your CI / secret manager. NEVER commit `service_role` keys.
+ 5. In production builds, provide `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` via your CI / secret manager. NEVER commit `service_role` keys.
 
  Notes on RLS and security
  - The migration includes example RLS policies. Test them with different users from the Supabase Auth > Users dashboard and the SQL editor using `auth.uid()` emulation.

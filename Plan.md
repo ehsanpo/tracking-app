@@ -139,9 +139,50 @@ Notes:
 - **Prototyping & assets:** prepare a small component library (buttons, inputs, list items, map marker components) and a Sketch/Figma file or simple design spec describing spacing and token usage.
 
 
-## Background Location (Android)
-- Use `expo-location` with `startLocationUpdatesAsync` and `expo-task-manager` to publish periodic location updates while app is backgrounded (Android only for MVP).
+## Location Permissions & Tracking
+
+### Android
+**Permissions Required:**
+- **Foreground Location** (`ACCESS_FINE_LOCATION`): Required for GPS-level accuracy when app is visible
+  - Use `expo-location` with `requestForegroundPermissionsAsync()`
+  
+- **Background Location** (`ACCESS_BACKGROUND_LOCATION`): Required for location updates when app is not visible (Android 10+)
+  - Use `expo-location` with `requestBackgroundPermissionsAsync()`
+  - Requires separate permission prompt with clear user explanation
+  - Must justify usage to Google Play Store
+  
+- **Activity Recognition** (`ACTIVITY_RECOGNITION`): Optional but recommended for battery optimization (Android 10+)
+  - Detects user activity: walking, running, driving, stationary, cycling
+  - Allows smart location polling (less frequent when stationary, more when moving)
+  - Reduces battery drain significantly
+  - **Library**: Use `react-native-activity-recognition` (preferred over `react-native-motion-activity-tracker`)
+    - More actively maintained with better Android support
+    - Install: `npx expo install react-native-activity-recognition`
+    - Requires custom development build (`npx expo prebuild` + `npx expo run:android`)
+    - API: Subscribe to activity updates with confidence levels (0-100)
+  - Note: Not compatible with Expo Go; requires custom development client
+
+**Implementation:**
+- Use `expo-location` with `startLocationUpdatesAsync` and `expo-task-manager` to publish periodic location updates while app is backgrounded.
 - Be mindful of battery and prompt users with clear consent messaging.
+- Consider adding activity recognition in future iterations for better battery efficiency.
+
+### Web
+**Capabilities & Limitations:**
+- Uses browser's Geolocation API (HTML5)
+- Requires HTTPS in production (localhost works without HTTPS)
+- Browser permission prompt required (similar to mobile)
+- **Foreground only** - location updates stop when browser tab is inactive/backgrounded
+- **Lower accuracy** - typically WiFi/IP-based positioning (~50-100m accuracy) vs GPS on mobile
+- No background location tracking capability
+- No activity recognition available
+- `expo-location` works on web but with above limitations
+
+**Best for:**
+- Testing and development
+- Admin/desktop monitoring use cases
+- Viewing family members' locations (receive updates from mobile users)
+- Less suitable for continuous location sharing from web browsers
 
 ## Data Retention & Privacy
 - Keep minimal retention for `locations` (e.g., keep 30 days) or prune older rows.
@@ -156,6 +197,8 @@ Notes:
 2. Scaffold app + Supabase schema
 3. Auth + onboarding + create/join circle
 4. Live map + realtime location streaming
+   - **Foreground Tracking**: Gives us users location whenever our app is visible on the screen. Easy to set up & use.
+   - **Background Location Tracking**: Gives us the users location at all times, even if the app is not visible or device is locked. Uses considerably more battery power. Much more complicated to set up.
 5. Background & offline sync
 6. Testing and docs
 
