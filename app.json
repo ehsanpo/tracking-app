@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Tracking App",
+    "slug": "tracking-app",
+    "platforms": ["android", "web"],
+    "version": "1.0.0",
+    "sdkVersion": "49.0.0",
+    "orientation": "portrait"
+  }
+}
