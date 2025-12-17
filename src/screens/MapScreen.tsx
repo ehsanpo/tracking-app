@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, TouchableOpacity, Alert } from 'react
 import { CircleWithMembership } from '../contexts/CircleContext';
 import { useLocation } from '../contexts/LocationContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import MemberListPanel from '../components/MemberListPanel';
 
 // Platform-specific map components
@@ -16,6 +17,7 @@ type MapScreenProps = {
 
 export default function MapScreen({ circles }: MapScreenProps) {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const {
     memberLocations,
     isTracking,
@@ -74,7 +76,7 @@ export default function MapScreen({ circles }: MapScreenProps) {
 
   // Filter out current user's location from member locations
   const otherMemberLocations = memberLocationArray.filter(
-    (loc) => !currentLocation || loc.userId !== 'current-user' // We'll need user ID from auth context
+    (loc) => !user || loc.userId !== user.id
   );
 
   if (circles.length === 0) {

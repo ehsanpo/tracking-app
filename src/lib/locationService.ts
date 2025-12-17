@@ -221,6 +221,7 @@ export async function startLocationTracking(
     interval?: number; // milliseconds between updates (default 10000 = 10s)
     distanceInterval?: number; // meters between updates (default 10m)
     useBackgroundTask?: boolean; // Use background task for Android (default true)
+    onBackgroundPermissionChange?: (granted: boolean) => void; // Notify caller when background permission state changes
   } = {}
 ): Promise<void> {
   // Stop existing subscription if any
@@ -251,6 +252,7 @@ export async function startLocationTracking(
     if (shouldUseBackgroundTask) {
       // Request background permissions for Android
       const { granted: bgGranted } = await requestBackgroundPermissions();
+      options.onBackgroundPermissionChange?.(bgGranted);
       
       if (bgGranted) {
         console.log('Starting background location task');

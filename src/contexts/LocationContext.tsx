@@ -106,6 +106,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       interval: 10000, // 10 seconds
       distanceInterval: 10, // 10 meters
       useBackgroundTask: true, // Enable background tracking for Android
+      onBackgroundPermissionChange: setHasBackgroundPermission,
     });
 
     setIsTracking(true);
@@ -148,6 +149,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
     console.log('Setting up realtime subscription for circles:', acceptedCircleIds);
 
+    const quotedIds = acceptedCircleIds.map((id) => `"${id}"`).join(',');
+
     // Create a channel for location updates
     const channel = supabase
       .channel('locations-channel')
@@ -157,7 +160,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           event: 'INSERT',
           schema: 'public',
           table: 'locations',
-          filter: `circle_id=in.(${acceptedCircleIds.join(',')})`,
+          filter: `circle_id=in.(${quotedIds})`,
         },
         (payload) => {
           console.log('Location update received:', payload);
