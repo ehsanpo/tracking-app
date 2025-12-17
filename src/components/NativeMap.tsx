@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { MemberLocation } from '../contexts/LocationContext';
 import { pickCircleColor } from '../design/tokens';
 import { useTheme } from '../contexts/ThemeContext';
@@ -33,6 +33,7 @@ export default function NativeMap({ currentLocation, memberLocations, mapCenter,
     <View style={styles.container}>
       <MapView
         ref={mapRef}
+        provider={PROVIDER_DEFAULT}
         style={styles.map}
         customMapStyle={themeMode === 'dark' ? darkMapStyle : []}
         initialRegion={{
