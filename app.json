@@ -5,6 +5,27 @@
     "platforms": ["android", "web"],
     "version": "1.0.0",
     "sdkVersion": "49.0.0",
-    "orientation": "portrait"
+    "orientation": "portrait",
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to share it with your family members.",
+          "locationAlwaysPermission": "Allow $(PRODUCT_NAME) to use your location even when the app is in the background so your family members can always see where you are.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location while using the app.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
+    ]
   }
 }

@@ -5,28 +5,33 @@
   "scripts": {
     "start": "node ./scripts/start.js",
     "web": "node ./scripts/start.js --web",
-    "android": "node ./scripts/start.js --android",
-    "lint": "eslint . --ext .js,.ts,.tsx"
+    "android": "expo run:android",
+    "lint": "eslint . --ext .js,.ts,.tsx",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/webpack-config": "^19.0.0",
+    "@react-native-async-storage/async-storage": "1.18.2",
     "@supabase/supabase-js": "^2.0.0",
     "@types/leaflet": "^1.9.21",
     "expo": "~49.0.0",
     "expo-location": "~16.1.0",
+    "expo-splash-screen": "~0.20.5",
+    "expo-status-bar": "~1.6.0",
     "expo-task-manager": "~11.3.0",
     "leaflet": "^1.9.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-leaflet": "^4.2.1",
-    "react-native": "0.72.0",
+    "react-native": "0.72.10",
     "react-native-maps": "1.7.1",
+    "react-native-url-polyfill": "^3.0.0",
     "react-native-web": "~0.19.10",
-    "typescript": "^5.0.0",
-    "@react-native-async-storage/async-storage": "1.18.2"
+    "typescript": "^5.0.0"
   },
   "devDependencies": {
-    "@types/react": "18.0.28",
+    "@babel/core": "^7.20.0",
+    "@types/react": "~18.2.14",
     "@types/react-native": "0.71.8",
     "dotenv": "^16.0.0",
     "eslint": "^8.0.0"

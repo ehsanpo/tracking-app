@@ -10,6 +10,12 @@ module.exports = async function (env, argv) {
     'react-native-web$': 'react-native-web',
   };
 
+  // Add CSS loader for Leaflet
+  config.module.rules.push({
+    test: /\.css$/,
+    use: ['style-loader', 'css-loader'],
+  });
+
   // Use NormalModuleReplacementPlugin to redirect all react-native internal imports
   const webpack = require('webpack');
   config.plugins.push(

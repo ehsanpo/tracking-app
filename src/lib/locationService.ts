@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { supabase } from './supabaseClient';
 
@@ -9,9 +10,68 @@ export type LocationData = {
   timestamp: number;
 };
 
+const LOCATION_TRACKING_TASK = 'background-location-tracking';
+
 let locationSubscription: Location.LocationSubscription | null = null;
 let currentCircleIds: string[] = [];
 let webWatchId: number | null = null;
+let isUsingBackgroundTask = false;
+
+/**
+ * Define background location task for Android
+ * This runs when the app is backgrounded and continues to track location
+ */
+TaskManager.defineTask(LOCATION_TRACKING_TASK, async ({ data, error }: any) => {
+  if (error) {
+    console.error('Background location task error:', error);
+    return;
+  }
+  
+  if (data) {
+    const { locations } = data;
+    
+    if (locations && locations.length > 0) {
+      const location = locations[0];
+      const locationData: LocationData = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        timestamp: location.timestamp,
+      };
+      
+      console.log('Background location update:', locationData);
+      
+      // Publish to all current circles
+      if (currentCircleIds.length > 0) {
+        await publishLocation(locationData, currentCircleIds);
+      }
+    }
+  }
+});
+
+/**
+ * Request background location permissions (Android only)
+ * Must be called after foreground permissions are granted
+ */
+export async function requestBackgroundPermissions(): Promise<{
+  granted: boolean;
+  permission?: Location.LocationPermissionResponse;
+}> {
+  if (Platform.OS === 'web') {
+    // Web doesn't support background location
+    return { granted: false };
+  }
+
+  if (Platform.OS === 'android') {
+    const permission = await Location.requestBackgroundPermissionsAsync();
+    return {
+      granted: permission.granted,
+      permission,
+    };
+  }
+
+  return { granted: false };
+}
 
 /**
  * Request foreground location permissions
@@ -160,6 +220,7 @@ export async function startLocationTracking(
   options: {
     interval?: number; // milliseconds between updates (default 10000 = 10s)
     distanceInterval?: number; // meters between updates (default 10m)
+    useBackgroundTask?: boolean; // Use background task for Android (default true)
   } = {}
 ): Promise<void> {
   // Stop existing subscription if any
@@ -181,6 +242,39 @@ export async function startLocationTracking(
     }
 
     console.log(`Starting location tracking for ${circleIds.length} circles`);
+
+    // For Android, use background task by default for better reliability
+    const shouldUseBackgroundTask = 
+      Platform.OS === 'android' && 
+      (options.useBackgroundTask !== false);
+
+    if (shouldUseBackgroundTask) {
+      // Request background permissions for Android
+      const { granted: bgGranted } = await requestBackgroundPermissions();
+      
+      if (bgGranted) {
+        console.log('Starting background location task');
+        
+        await Location.startLocationUpdatesAsync(LOCATION_TRACKING_TASK, {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: options.interval || 10000, // 10 seconds default
+          distanceInterval: options.distanceInterval || 10, // 10 meters default
+          foregroundService: {
+            notificationTitle: 'Sharing location',
+            notificationBody: 'Your location is being shared with family members',
+            notificationColor: '#4A90E2',
+          },
+          pausesUpdatesAutomatically: false,
+          showsBackgroundLocationIndicator: true,
+        });
+        
+        isUsingBackgroundTask = true;
+        console.log('Background location task started');
+        return;
+      } else {
+        console.warn('Background permission not granted, falling back to foreground tracking');
+      }
+    }
 
     if (Platform.OS === 'web' && navigator.geolocation) {
       // Use native browser watchPosition for web
@@ -248,6 +342,16 @@ export async function startLocationTracking(
  * Stop location tracking
  */
 export async function stopLocationTracking(): Promise<void> {
+  // Stop background task if running
+  if (isUsingBackgroundTask) {
+    const isTaskRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TRACKING_TASK);
+    if (isTaskRegistered) {
+      await Location.stopLocationUpdatesAsync(LOCATION_TRACKING_TASK);
+      console.log('Background location task stopped');
+    }
+    isUsingBackgroundTask = false;
+  }
+  
   if (Platform.OS === 'web' && webWatchId !== null) {
     navigator.geolocation.clearWatch(webWatchId);
     

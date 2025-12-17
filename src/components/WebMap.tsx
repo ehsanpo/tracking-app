@@ -6,7 +6,7 @@ import { MemberLocation } from '../contexts/LocationContext';
 import { pickCircleColor } from '../design/tokens';
 import { useTheme } from '../contexts/ThemeContext';
 
-// Fix for default marker icons in Leaflet
+// Import Leaflet CSS (only used on web via webpack)
 import 'leaflet/dist/leaflet.css';
 
 // Fix default icon paths

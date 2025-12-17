@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabaseClient';
 import { useCircles } from './CircleContext';
 import {
@@ -7,7 +8,9 @@ import {
   stopLocationTracking,
   updateCircleIds,
   requestForegroundPermissions,
+  requestBackgroundPermissions,
   getCurrentLocation,
+  publishLastKnownLocation,
   LocationData,
 } from '../lib/locationService';
 
@@ -24,30 +27,52 @@ export type MemberLocation = {
 type LocationContextType = {
   memberLocations: Map<string, MemberLocation>; // keyed by userId
   isTracking: boolean;
+  isOnline: boolean;
   hasPermission: boolean;
+  hasBackgroundPermission: boolean;
   currentLocation: LocationData | null;
-  startTracking: () => Promise<void>;
-  stopTracking: () => Promise<void>;
+  setOnline: (online: boolean) => Promise<void>;
   requestPermission: () => Promise<boolean>;
+  requestBackgroundPermission: () => Promise<boolean>;
   refreshCurrentLocation: () => Promise<void>;
 };
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
 
+const ONLINE_STATUS_KEY = '@tracking_app:online_status';
+
 export function LocationProvider({ children }: { children: React.ReactNode }) {
   const { circles } = useCircles();
   const [memberLocations, setMemberLocations] = useState<Map<string, MemberLocation>>(new Map());
   const [isTracking, setIsTracking] = useState(false);
+  const [isOnline, setIsOnlineState] = useState(true); // User's online/offline preference
   const [hasPermission, setHasPermission] = useState(false);
+  const [hasBackgroundPermission, setHasBackgroundPermission] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
 
   const acceptedCircleIds = circles.map((c) => c.id);
 
+  // Load online status from storage
+  useEffect(() => {
+    AsyncStorage.getItem(ONLINE_STATUS_KEY).then((value) => {
+      if (value !== null) {
+        setIsOnlineState(value === 'true');
+      }
+    });
+  }, []);
+
   // Request location permission
   const requestPermission = useCallback(async () => {
     const { granted } = await requestForegroundPermissions();
     setHasPermission(granted);
+    return granted;
+  }, []);
+
+  // Request background location permission
+  const requestBackgroundPermission = useCallback(async () => {
+    const { granted } = await requestBackgroundPermissions();
+    setHasBackgroundPermission(granted);
     return granted;
   }, []);
 
@@ -66,6 +91,11 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (!isOnline) {
+      console.log('User is offline, not starting tracking');
+      return;
+    }
+
     const granted = await requestPermission();
     if (!granted) {
       console.error('Permission denied');
@@ -75,17 +105,35 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     await startLocationTracking(acceptedCircleIds, {
       interval: 10000, // 10 seconds
       distanceInterval: 10, // 10 meters
+      useBackgroundTask: true, // Enable background tracking for Android
     });
 
     setIsTracking(true);
     await refreshCurrentLocation();
-  }, [acceptedCircleIds, requestPermission, refreshCurrentLocation]);
+  }, [acceptedCircleIds, isOnline, requestPermission, refreshCurrentLocation]);
 
   // Stop tracking
   const stopTracking = useCallback(async () => {
     await stopLocationTracking();
     setIsTracking(false);
   }, []);
+
+  // Set online/offline status
+  const setOnline = useCallback(async (online: boolean) => {
+    setIsOnlineState(online);
+    await AsyncStorage.setItem(ONLINE_STATUS_KEY, online.toString());
+    
+    if (!online) {
+      // Going offline - publish last known location
+      if (acceptedCircleIds.length > 0) {
+        await publishLastKnownLocation(acceptedCircleIds);
+      }
+      await stopTracking();
+    } else {
+      // Going online - start tracking
+      await startTracking();
+    }
+  }, [acceptedCircleIds, startTracking, stopTracking]);
 
   // Subscribe to realtime location updates for all accepted circles
   useEffect(() => {
@@ -233,16 +281,26 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     }
   }, [acceptedCircleIds.join(','), isTracking]);
 
+  // Auto-start tracking when user has circles and is online
+  useEffect(() => {
+    if (acceptedCircleIds.length > 0 && isOnline && !isTracking) {
+      console.log('Auto-starting location tracking');
+      startTracking();
+    }
+  }, [acceptedCircleIds.length, isOnline]); // Don't include isTracking to avoid loops
+
   return (
     <LocationContext.Provider
       value={{
         memberLocations,
         isTracking,
+        isOnline,
         hasPermission,
+        hasBackgroundPermission,
         currentLocation,
-        startTracking,
-        stopTracking,
+        setOnline,
         requestPermission,
+        requestBackgroundPermission,
         refreshCurrentLocation,
       }}
     >

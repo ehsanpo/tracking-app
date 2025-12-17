@@ -19,11 +19,13 @@ export default function MapScreen({ circles }: MapScreenProps) {
   const {
     memberLocations,
     isTracking,
+    isOnline,
     hasPermission,
+    hasBackgroundPermission,
     currentLocation,
-    startTracking,
-    stopTracking,
+    setOnline,
     requestPermission,
+    requestBackgroundPermission,
   } = useLocation();
 
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number }>({
@@ -41,22 +43,30 @@ export default function MapScreen({ circles }: MapScreenProps) {
     }
   }, [currentLocation]);
 
-  const handleStartTracking = async () => {
-    if (!hasPermission) {
-      const granted = await requestPermission();
-      if (!granted) {
-        Alert.alert(
-          'Location Permission Required',
-          'This app needs access to your location to show your position to family members.'
-        );
-        return;
+  // Request permissions on mount if not already granted
+  useEffect(() => {
+    const requestPermissionsIfNeeded = async () => {
+      if (!hasPermission) {
+        const granted = await requestPermission();
+        if (!granted) {
+          Alert.alert(
+            'Location Permission Required',
+            'This app needs access to your location to show your position to family members.'
+          );
+        }
       }
-    }
-    await startTracking();
-  };
+      
+      // Request background permission for better tracking (Android only)
+      if (hasPermission && !hasBackgroundPermission && Platform.OS === 'android') {
+        await requestBackgroundPermission();
+      }
+    };
+    
+    requestPermissionsIfNeeded();
+  }, []);
 
-  const handleStopTracking = async () => {
-    await stopTracking();
+  const handleToggleOnline = async () => {
+    await setOnline(!isOnline);
   };
 
   // Convert Map to array for rendering
@@ -111,25 +121,38 @@ export default function MapScreen({ circles }: MapScreenProps) {
         borderTopColor: theme.colors.border
       }]}>
         <View style={styles.statusRow}>
-          <Text style={[styles.statusText, { color: theme.colors.textPrimary }]}>
-            {isTracking ? '🟢 Tracking' : '⚪ Not tracking'}
-          </Text>
+          <View>
+            <Text style={[styles.statusText, { color: theme.colors.textPrimary }]}>
+              {isOnline ? '🟢 Online' : '⚪ Offline'}
+            </Text>
+            {isTracking && (
+              <Text style={[styles.statusSubtext, { color: theme.colors.textSecondary }]}>
+                {hasBackgroundPermission ? 'Background tracking enabled' : 'Foreground tracking only'}
+              </Text>
+            )}
+          </View>
         </View>
 
         <TouchableOpacity
-          style={[styles.button, isTracking ? styles.stopButton : styles.startButton, {
-            backgroundColor: isTracking ? theme.colors.danger : theme.colors.primary
+          style={[styles.button, !isOnline ? styles.offlineButton : styles.onlineButton, {
+            backgroundColor: !isOnline ? theme.colors.warning : theme.colors.success
           }]}
-          onPress={isTracking ? handleStopTracking : handleStartTracking}
+          onPress={handleToggleOnline}
         >
           <Text style={[styles.buttonText, { color: theme.colors.surface }]}>
-            {isTracking ? 'Stop Sharing Location' : 'Start Sharing Location'}
+            {isOnline ? 'Go Offline' : 'Go Online'}
           </Text>
         </TouchableOpacity>
 
         {!hasPermission && (
-          <Text style={styles.hint}>
-            Grant location permission to share your location with family
+          <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
+            Location permission needed to share your position
+          </Text>
+        )}
+        
+        {isOnline && !isTracking && hasPermission && (
+          <Text style={[styles.hint, { color: theme.colors.warning }]}>
+            Waiting to start tracking...
           </Text>
         )}
       </View>
@@ -175,6 +198,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  statusSubtext: {
+    fontSize: 12,
+    marginTop: 4,
+  },
   button: {
     borderRadius: 8,
     padding: 16,
@@ -182,8 +209,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
   },
-  startButton: {},
-  stopButton: {},
+  onlineButton: {},
+  offlineButton: {},
   buttonText: {
     fontSize: 16,
     fontWeight: '500',
