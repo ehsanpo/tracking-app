@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { lightTheme } from '../design/tokens';
+import { useTheme } from '../contexts/ThemeContext';
 import { useCircles, CircleMember, CircleWithMembership } from '../contexts/CircleContext';
 
 type CircleManagementScreenProps = {
@@ -17,6 +17,7 @@ type CircleManagementScreenProps = {
 };
 
 export default function CircleManagementScreen({ circle, onBack }: CircleManagementScreenProps) {
+  const { theme } = useTheme();
   const { getPendingRequests, acceptMember, rejectMember, regenerateJoinCode } = useCircles();
   const [pendingRequests, setPendingRequests] = useState<CircleMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -108,31 +109,34 @@ export default function CircleManagementScreen({ circle, onBack }: CircleManagem
   }, [circle.id]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { 
+        backgroundColor: theme.colors.surface,
+        borderBottomColor: theme.colors.border
+      }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{circle.name}</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>{circle.name}</Text>
       </View>
 
       <View style={styles.content}>
         {/* Join Code Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Join Code</Text>
-          <View style={styles.joinCodeContainer}>
-            <Text style={styles.joinCode}>{circle.join_code}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Join Code</Text>
+          <View style={[styles.joinCodeContainer, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.joinCode, { color: theme.colors.primary }]}>{circle.join_code}</Text>
             <TouchableOpacity style={styles.iconButton} onPress={copyJoinCode}>
-              <Text style={styles.iconButtonText}>Copy</Text>
+              <Text style={[styles.iconButtonText, { color: theme.colors.primary }]}>Copy</Text>
             </TouchableOpacity>
           </View>
           {isAdmin && (
             <TouchableOpacity
-              style={[styles.button, styles.secondaryButton]}
+              style={[styles.button, styles.secondaryButton, { borderColor: theme.colors.border }]}
               onPress={handleRegenerateCode}
               disabled={loading}
             >
-              <Text style={styles.secondaryButtonText}>Regenerate Code</Text>
+              <Text style={[styles.secondaryButtonText, { color: theme.colors.textPrimary }]}>Regenerate Code</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -140,11 +144,11 @@ export default function CircleManagementScreen({ circle, onBack }: CircleManagem
         {/* Pending Requests Section (Admin Only) */}
         {isAdmin && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>
               Pending Requests ({pendingRequests.length})
             </Text>
             {pendingRequests.length === 0 ? (
-              <Text style={styles.emptyText}>No pending requests</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No pending requests</Text>
             ) : (
               <FlatList
                 data={pendingRequests}
@@ -152,22 +156,22 @@ export default function CircleManagementScreen({ circle, onBack }: CircleManagem
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
                 renderItem={({ item }) => (
-                  <View style={styles.requestCard}>
-                    <Text style={styles.requestText}>User ID: {item.user_id.slice(0, 8)}...</Text>
+                  <View style={[styles.requestCard, { backgroundColor: theme.colors.surface }]}>
+                    <Text style={[styles.requestText, { color: theme.colors.textPrimary }]}>User ID: {item.user_id.slice(0, 8)}...</Text>
                     <View style={styles.requestActions}>
                       <TouchableOpacity
-                        style={[styles.button, styles.successButton]}
+                        style={[styles.button, styles.successButton, { backgroundColor: theme.colors.success }]}
                         onPress={() => handleAcceptMember(item.id)}
                         disabled={loading}
                       >
-                        <Text style={styles.buttonText}>Accept</Text>
+                        <Text style={[styles.buttonText, { color: theme.colors.surface }]}>Accept</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.button, styles.dangerButton]}
+                        style={[styles.button, styles.dangerButton, { backgroundColor: theme.colors.danger }]}
                         onPress={() => handleRejectMember(item.id)}
                         disabled={loading}
                       >
-                        <Text style={styles.buttonText}>Reject</Text>
+                        <Text style={[styles.buttonText, { color: theme.colors.surface }]}>Reject</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -179,8 +183,8 @@ export default function CircleManagementScreen({ circle, onBack }: CircleManagem
 
         {/* Info Section */}
         <View style={styles.section}>
-          <Text style={styles.infoText}>Role: {circle.membership.role}</Text>
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>Role: {circle.membership.role}</Text>
+          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
             Joined: {new Date(circle.membership.joined_at || '').toLocaleDateString()}
           </Text>
         </View>
@@ -192,69 +196,60 @@ export default function CircleManagementScreen({ circle, onBack }: CircleManagem
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: lightTheme.colors.background,
   },
   header: {
-    backgroundColor: lightTheme.colors.surface,
-    padding: lightTheme.spacing.small,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: lightTheme.colors.border,
     flexDirection: 'row',
     alignItems: 'center',
   },
   backButton: {
-    padding: lightTheme.spacing.xsmall,
-    marginRight: lightTheme.spacing.xsmall,
+    padding: 8,
+    marginRight: 8,
   },
   backButtonText: {
-    fontSize: lightTheme.typography.sizes.body,
-    color: lightTheme.colors.primary,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 16,
+    fontWeight: '500',
   },
   headerTitle: {
-    fontSize: lightTheme.typography.sizes.h3,
-    fontWeight: String(lightTheme.typography.weights.bold) as any,
-    color: lightTheme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
   },
   content: {
     flex: 1,
-    padding: lightTheme.spacing.small,
+    padding: 16,
   },
   section: {
-    marginBottom: lightTheme.spacing.medium,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: lightTheme.typography.sizes.subhead,
-    fontWeight: String(lightTheme.typography.weights.bold) as any,
-    color: lightTheme.colors.textPrimary,
-    marginBottom: lightTheme.spacing.xsmall,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   joinCodeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: lightTheme.colors.surface,
-    padding: lightTheme.spacing.small,
-    borderRadius: lightTheme.radii.medium,
-    marginBottom: lightTheme.spacing.xsmall,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   joinCode: {
     flex: 1,
-    fontSize: lightTheme.typography.sizes.h2,
-    fontWeight: String(lightTheme.typography.weights.bold) as any,
-    color: lightTheme.colors.primary,
+    fontSize: 24,
+    fontWeight: '700',
     letterSpacing: 2,
   },
   iconButton: {
-    padding: lightTheme.spacing.xsmall,
+    padding: 8,
   },
   iconButtonText: {
-    color: lightTheme.colors.primary,
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 14,
+    fontWeight: '500',
   },
   button: {
-    borderRadius: lightTheme.radii.medium,
-    padding: lightTheme.spacing.xsmall,
+    borderRadius: 8,
+    padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 40,
@@ -262,50 +257,41 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: lightTheme.colors.border,
   },
   secondaryButtonText: {
-    color: lightTheme.colors.textPrimary,
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 14,
+    fontWeight: '500',
   },
   emptyText: {
-    fontSize: lightTheme.typography.sizes.body,
-    color: lightTheme.colors.textSecondary,
+    fontSize: 16,
     textAlign: 'center',
-    padding: lightTheme.spacing.medium,
+    padding: 24,
   },
   requestCard: {
-    backgroundColor: lightTheme.colors.surface,
-    padding: lightTheme.spacing.small,
-    borderRadius: lightTheme.radii.medium,
-    marginBottom: lightTheme.spacing.xsmall,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   requestText: {
-    fontSize: lightTheme.typography.sizes.body,
-    color: lightTheme.colors.textPrimary,
-    marginBottom: lightTheme.spacing.xsmall,
+    fontSize: 16,
+    marginBottom: 8,
   },
   requestActions: {
     flexDirection: 'row',
-    gap: lightTheme.spacing.xsmall,
+    gap: 8,
   },
   successButton: {
     flex: 1,
-    backgroundColor: lightTheme.colors.success,
   },
   dangerButton: {
     flex: 1,
-    backgroundColor: lightTheme.colors.danger,
   },
   buttonText: {
-    color: lightTheme.colors.surface,
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 14,
+    fontWeight: '500',
   },
   infoText: {
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    color: lightTheme.colors.textSecondary,
-    marginBottom: lightTheme.spacing.px,
+    fontSize: 14,
+    marginBottom: 4,
   },
 });

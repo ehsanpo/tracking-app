@@ -1,24 +1,27 @@
 import React from 'react';
 import { SafeAreaView, ActivityIndicator, View, StyleSheet } from 'react-native';
-import { lightTheme } from './design/tokens';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { CircleProvider } from './contexts/CircleContext';
+import { LocationProvider } from './contexts/LocationContext';
+import { ProfileProvider } from './contexts/ProfileContext';
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const { theme } = useTheme();
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: lightTheme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {!user ? <AuthScreen /> : <HomeScreen />}
     </SafeAreaView>
   );
@@ -27,9 +30,15 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <CircleProvider>
-        <AppContent />
-      </CircleProvider>
+      <ThemeProvider>
+        <ProfileProvider>
+          <CircleProvider>
+            <LocationProvider>
+              <AppContent />
+            </LocationProvider>
+          </CircleProvider>
+        </ProfileProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

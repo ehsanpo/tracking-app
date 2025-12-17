@@ -1,21 +1,137 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, Alert } from 'react-native';
 import { CircleWithMembership } from '../contexts/CircleContext';
-import { lightTheme } from '../design/tokens';
+import { useLocation } from '../contexts/LocationContext';
+import { useTheme } from '../contexts/ThemeContext';
+import MemberListPanel from '../components/MemberListPanel';
+
+// Platform-specific map components
+const MapComponent = Platform.OS === 'web' 
+  ? require('../components/WebMap').default 
+  : require('../components/NativeMap').default;
 
 type MapScreenProps = {
   circles: CircleWithMembership[];
 };
 
 export default function MapScreen({ circles }: MapScreenProps) {
+  const { theme } = useTheme();
+  const {
+    memberLocations,
+    isTracking,
+    hasPermission,
+    currentLocation,
+    startTracking,
+    stopTracking,
+    requestPermission,
+  } = useLocation();
+
+  const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number }>({
+    latitude: 37.78825, // Default to San Francisco
+    longitude: -122.4324,
+  });
+
+  // Update map center when current location is available
+  useEffect(() => {
+    if (currentLocation) {
+      setMapCenter({
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+      });
+    }
+  }, [currentLocation]);
+
+  const handleStartTracking = async () => {
+    if (!hasPermission) {
+      const granted = await requestPermission();
+      if (!granted) {
+        Alert.alert(
+          'Location Permission Required',
+          'This app needs access to your location to show your position to family members.'
+        );
+        return;
+      }
+    }
+    await startTracking();
+  };
+
+  const handleStopTracking = async () => {
+    await stopTracking();
+  };
+
+  // Convert Map to array for rendering
+  const memberLocationArray = Array.from(memberLocations.values());
+
+  // Filter out current user's location from member locations
+  const otherMemberLocations = memberLocationArray.filter(
+    (loc) => !currentLocation || loc.userId !== 'current-user' // We'll need user ID from auth context
+  );
+
+  if (circles.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.placeholder}>
+          <Text style={[styles.text, { color: theme.colors.textPrimary }]}>No Circles</Text>
+          <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Join or create a circle to start tracking</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const handleMemberClick = (location: any) => {
+    console.log('Member clicked:', location);
+    // Update map center to the clicked member
+    setMapCenter({
+      latitude: location.latitude,
+      longitude: location.longitude,
+    });
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.placeholder}>
-        <Text style={styles.text}>Map placeholder</Text>
-        <Text style={styles.hint}>
-          Showing {circles.length} circle{circles.length !== 1 ? 's' : ''}
-        </Text>
-        <Text style={styles.hint}>We'll integrate `react-native-maps` and realtime updates next.</Text>
+      {/* Map Component */}
+      <View style={styles.mapContainer}>
+        <MapComponent
+          currentLocation={currentLocation}
+          memberLocations={otherMemberLocations}
+          mapCenter={mapCenter}
+          onMemberClick={handleMemberClick}
+        />
+      </View>
+
+      {/* Member List Panel */}
+      <MemberListPanel 
+        memberLocations={memberLocationArray}
+        onMemberPress={handleMemberClick}
+      />
+
+      {/* Control Panel */}
+      <View style={[styles.controlPanel, { 
+        backgroundColor: theme.colors.surface,
+        borderTopColor: theme.colors.border
+      }]}>
+        <View style={styles.statusRow}>
+          <Text style={[styles.statusText, { color: theme.colors.textPrimary }]}>
+            {isTracking ? '🟢 Tracking' : '⚪ Not tracking'}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, isTracking ? styles.stopButton : styles.startButton, {
+            backgroundColor: isTracking ? theme.colors.danger : theme.colors.primary
+          }]}
+          onPress={isTracking ? handleStopTracking : handleStartTracking}
+        >
+          <Text style={[styles.buttonText, { color: theme.colors.surface }]}>
+            {isTracking ? 'Stop Sharing Location' : 'Start Sharing Location'}
+          </Text>
+        </TouchableOpacity>
+
+        {!hasPermission && (
+          <Text style={styles.hint}>
+            Grant location permission to share your location with family
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -24,23 +140,52 @@ export default function MapScreen({ circles }: MapScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: lightTheme.spacing.small,
+  },
+  mapContainer: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   placeholder: {
     flex: 1,
-    borderRadius: lightTheme.radii.large,
-    backgroundColor: lightTheme.colors.surface,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
-    fontSize: lightTheme.typography.sizes.subhead,
-    color: lightTheme.colors.textPrimary,
-    marginBottom: lightTheme.spacing.xsmall,
+    fontSize: 18,
+    marginBottom: 8,
   },
   hint: {
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    color: lightTheme.colors.textSecondary,
-    marginTop: lightTheme.spacing.px,
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  controlPanel: {
+    padding: 16,
+    borderTopWidth: 1,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  button: {
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  startButton: {},
+  stopButton: {},
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

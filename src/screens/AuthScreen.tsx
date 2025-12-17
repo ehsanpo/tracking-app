@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { lightTheme, spacing } from '../design/tokens';
+import { useTheme } from '../contexts/ThemeContext';
+import { spacing } from '../design/tokens';
 
 export default function AuthScreen() {
   const { signUp, signIn } = useAuth();
+  const { theme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -32,21 +34,33 @@ export default function AuthScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Family Tracker</Text>
-      <Text style={styles.subtitle}>{isSignUp ? 'Create an account' : 'Sign in to continue'}</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Welcome to Family Tracker</Text>
+      <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+        {isSignUp ? 'Create an account' : 'Sign in to continue'}
+      </Text>
       
       <TextInput
-        style={styles.input}
+        style={[styles.input, { 
+          backgroundColor: theme.colors.surface, 
+          borderColor: theme.colors.border,
+          color: theme.colors.textPrimary
+        }]}
         placeholder="Email"
+        placeholderTextColor={theme.colors.textSecondary}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { 
+          backgroundColor: theme.colors.surface, 
+          borderColor: theme.colors.border,
+          color: theme.colors.textPrimary
+        }]}
         placeholder="Password"
+        placeholderTextColor={theme.colors.textSecondary}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -54,7 +68,7 @@ export default function AuthScreen() {
       
       <Button title={loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')} onPress={handleAuth} disabled={loading} />
       
-      <Text style={styles.toggle} onPress={() => setIsSignUp(!isSignUp)}>
+      <Text style={[styles.toggle, { color: theme.colors.primary }]} onPress={() => setIsSignUp(!isSignUp)}>
         {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
       </Text>
     </View>
@@ -77,7 +91,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: spacing.medium,
     textAlign: 'center',
-    color: lightTheme.colors.textSecondary,
   },
   input: {
     width: '100%',
@@ -85,13 +98,10 @@ const styles = StyleSheet.create({
     padding: spacing.small,
     marginBottom: spacing.small,
     borderWidth: 1,
-    borderColor: lightTheme.colors.border,
     borderRadius: 8,
-    backgroundColor: lightTheme.colors.surface,
   },
   toggle: {
     marginTop: spacing.small,
-    color: lightTheme.colors.primary,
     textDecorationLine: 'underline',
   },
 });

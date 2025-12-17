@@ -9,14 +9,18 @@ import {
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useCircles, CircleWithMembership } from '../contexts/CircleContext';
-import { lightTheme, pickCircleColor } from '../design/tokens';
+import { useTheme } from '../contexts/ThemeContext';
+import { pickCircleColor } from '../design/tokens';
 import MapScreen from './MapScreen';
 import OnboardingScreen from './OnboardingScreen';
 import CircleManagementScreen from './CircleManagementScreen';
+import ProfileScreen from './ProfileScreen';
+import SettingsScreen from './SettingsScreen';
 
-type Screen = 'circles' | 'map' | 'management' | 'onboarding';
+type Screen = 'circles' | 'map' | 'management' | 'onboarding' | 'profile' | 'settings';
 
 export default function HomeScreen() {
+  const { theme } = useTheme();
   const { user, signOut } = useAuth();
   const { circles, pendingCircles, loading } = useCircles();
   const [currentScreen, setCurrentScreen] = useState<Screen>('circles');
@@ -56,17 +60,30 @@ export default function HomeScreen() {
     return <CircleManagementScreen circle={selectedCircle} onBack={handleBackToCircles} />;
   }
 
+  // Show profile screen
+  if (currentScreen === 'profile') {
+    return <ProfileScreen onBack={handleBackToCircles} />;
+  }
+
+  // Show settings screen
+  if (currentScreen === 'settings') {
+    return <SettingsScreen onBack={handleBackToCircles} />;
+  }
+
   // Show map screen
   if (currentScreen === 'map') {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { 
+          backgroundColor: theme.colors.surface,
+          borderBottomColor: theme.colors.border
+        }]}>
           <TouchableOpacity onPress={handleBackToCircles} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Circles</Text>
+            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Circles</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Map</Text>
+          <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Map</Text>
           <TouchableOpacity onPress={signOut} style={styles.signOutButton}>
-            <Text style={styles.signOutText}>Sign Out</Text>
+            <Text style={[styles.signOutText, { color: theme.colors.danger }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
         <MapScreen circles={circles} />
@@ -76,25 +93,39 @@ export default function HomeScreen() {
 
   // Show circles list
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Circles</Text>
-        <TouchableOpacity onPress={signOut} style={styles.signOutButton}>
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { 
+        backgroundColor: theme.colors.surface,
+        borderBottomColor: theme.colors.border
+      }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>My Circles</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setCurrentScreen('profile')} style={styles.iconButton}>
+            <Text style={styles.iconButtonText}>👤</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setCurrentScreen('settings')} style={styles.iconButton}>
+            <Text style={styles.iconButtonText}>⚙️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={signOut} style={styles.signOutButton}>
+            <Text style={[styles.signOutText, { color: theme.colors.danger }]}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
         <View style={styles.content}>
           {pendingCircles.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>⏳ Pending Approval</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>⏳ Pending Approval</Text>
               {pendingCircles.map((item) => (
-                <View key={item.id} style={[styles.circleCard, styles.pendingCard]}>
+                <View key={item.id} style={[styles.circleCard, styles.pendingCard, { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border
+                }]}>
                   <View
                     style={[
                       styles.circleColorIndicator,
@@ -102,8 +133,8 @@ export default function HomeScreen() {
                     ]}
                   />
                   <View style={styles.circleInfo}>
-                    <Text style={styles.circleName}>{item.name}</Text>
-                    <Text style={styles.pendingText}>Waiting for admin approval...</Text>
+                    <Text style={[styles.circleName, { color: theme.colors.textPrimary }]}>{item.name}</Text>
+                    <Text style={[styles.pendingText, { color: theme.colors.textSecondary }]}>Waiting for admin approval...</Text>
                   </View>
                 </View>
               ))}
@@ -112,13 +143,16 @@ export default function HomeScreen() {
 
           {circles.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>My Circles</Text>
+              <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>My Circles</Text>
               <FlatList
                 data={circles}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={styles.circleCard}
+                    style={[styles.circleCard, { 
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border
+                    }]}
                     onPress={() => handleCirclePress(item)}
                   >
                     <View
@@ -128,12 +162,12 @@ export default function HomeScreen() {
                       ]}
                     />
                     <View style={styles.circleInfo}>
-                      <Text style={styles.circleName}>{item.name}</Text>
-                      <Text style={styles.circleRole}>
+                      <Text style={[styles.circleName, { color: theme.colors.textPrimary }]}>{item.name}</Text>
+                      <Text style={[styles.circleRole, { color: theme.colors.textSecondary }]}>
                         {item.membership.role === 'admin' ? '👑 Admin' : 'Member'}
                       </Text>
                     </View>
-                    <Text style={styles.arrowText}>→</Text>
+                    <Text style={[styles.arrowText, { color: theme.colors.textSecondary }]}>→</Text>
                   </TouchableOpacity>
                 )}
                 contentContainerStyle={styles.listContent}
@@ -143,17 +177,17 @@ export default function HomeScreen() {
           )}
 
           <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
+            style={[styles.button, styles.primaryButton, { backgroundColor: theme.colors.primary }]}
             onPress={handleViewMap}
           >
-            <Text style={styles.primaryButtonText}>View Map</Text>
+            <Text style={[styles.primaryButtonText, { color: theme.colors.surface }]}>View Map</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
+            style={[styles.button, styles.secondaryButton, { borderColor: theme.colors.border }]}
             onPress={() => setCurrentScreen('onboarding')}
           >
-            <Text style={styles.secondaryButtonText}>+ Add Another Circle</Text>
+            <Text style={[styles.secondaryButtonText, { color: theme.colors.textPrimary }]}>+ Add Another Circle</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -164,37 +198,42 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: lightTheme.colors.background,
   },
   header: {
-    backgroundColor: lightTheme.colors.surface,
-    padding: lightTheme.spacing.small,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: lightTheme.colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   headerTitle: {
-    fontSize: lightTheme.typography.sizes.h3,
-    fontWeight: String(lightTheme.typography.weights.bold) as any,
-    color: lightTheme.colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconButton: {
+    padding: 8,
+  },
+  iconButtonText: {
+    fontSize: 20,
   },
   backButton: {
-    padding: lightTheme.spacing.xsmall,
+    padding: 8,
   },
   backButtonText: {
-    fontSize: lightTheme.typography.sizes.body,
-    color: lightTheme.colors.primary,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 16,
+    fontWeight: '500',
   },
   signOutButton: {
-    padding: lightTheme.spacing.xsmall,
+    padding: 8,
   },
   signOutText: {
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    color: lightTheme.colors.danger,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 14,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -203,86 +242,74 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: lightTheme.spacing.small,
+    padding: 16,
   },
   listContent: {
-    paddingBottom: lightTheme.spacing.small,
+    paddingBottom: 16,
   },
   circleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: lightTheme.colors.surface,
-    padding: lightTheme.spacing.small,
-    borderRadius: lightTheme.radii.medium,
-    marginBottom: lightTheme.spacing.xsmall,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   circleColorIndicator: {
     width: 4,
     height: 48,
-    borderRadius: lightTheme.radii.small,
-    marginRight: lightTheme.spacing.small,
+    borderRadius: 4,
+    marginRight: 16,
   },
   circleInfo: {
     flex: 1,
   },
   circleName: {
-    fontSize: lightTheme.typography.sizes.body,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
-    color: lightTheme.colors.textPrimary,
-    marginBottom: lightTheme.spacing.px,
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   circleRole: {
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    color: lightTheme.colors.textSecondary,
+    fontSize: 14,
   },
   arrowText: {
-    fontSize: lightTheme.typography.sizes.h2,
-    color: lightTheme.colors.textSecondary,
+    fontSize: 24,
   },
   section: {
-    marginBottom: lightTheme.spacing.medium,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: lightTheme.typography.sizes.subhead,
-    fontWeight: String(lightTheme.typography.weights.bold) as any,
-    color: lightTheme.colors.textPrimary,
-    marginBottom: lightTheme.spacing.xsmall,
-    paddingHorizontal: lightTheme.spacing.px,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   pendingCard: {
     opacity: 0.8,
     borderLeftWidth: 3,
-    borderLeftColor: lightTheme.colors.warning,
   },
   pendingText: {
-    fontSize: lightTheme.typography.sizes.bodySmall,
-    color: lightTheme.colors.warning,
+    fontSize: 14,
     fontStyle: 'italic',
   },
   button: {
-    borderRadius: lightTheme.radii.medium,
-    padding: lightTheme.spacing.small,
+    borderRadius: 8,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: lightTheme.spacing.xsmall,
+    marginBottom: 8,
     minHeight: 48,
   },
-  primaryButton: {
-    backgroundColor: lightTheme.colors.primary,
-  },
+  primaryButton: {},
   primaryButtonText: {
-    color: lightTheme.colors.surface,
-    fontSize: lightTheme.typography.sizes.body,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 16,
+    fontWeight: '500',
   },
   secondaryButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: lightTheme.colors.border,
   },
   secondaryButtonText: {
-    color: lightTheme.colors.textPrimary,
-    fontSize: lightTheme.typography.sizes.body,
-    fontWeight: String(lightTheme.typography.weights.medium) as any,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
